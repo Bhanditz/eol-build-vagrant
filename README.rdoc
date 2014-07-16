@@ -1,0 +1,271 @@
+= Encyclopedia of Life - Vagrant Build Project
+
+=== www.eol.org
+
+== INTRODUCTION
+
+Welcome to the Encyclopedia of Life Vagrant Build project.  This project 
+contains the information needed to create a Vagrant box for EOL development 
+from a generic 64-bit Ubuntu Vagrant box.  This repo should be checked out on 
+the host operating system for the VirtualBox VM that will contain the EOL code.
+
+If you want to simply use the current Vagrant box for EOL Environment, please
+go to https://github.com/EOL/eol-vagrant.
+
+For this project we assume you are familiar with a UNIX 'bash' style command
+line.
+
+You will be switching between the local host command line and the Vagrant 
+machine command line a bit.  Any section that needs to be on the Vagrant 
+machine will start with:
+
+  # Vagrant
+
+Sections that start on the local host will start with:
+
+  # Local Host
+
+If you are working through this in order, it will not be necessary to exit 
+and connect to vagrant each time, but there is at least one spot where that 
+is necessary.  To get from the vagrant host to the local host give the command:
+
+  % exit
+
+== LICENSE
+
+The full code base is released under the MIT License.  Details are available 
+in the "LICENSE" file at the root of the code folder.
+
+Things you need to do:
+
+1. Install VirtualBox
+2. Install Vagrant
+3. Install Git
+4. Git the Vagrant box for EOL build environment
+5. Run 'vagrant up'
+6. Update the box
+7. Install git on the box
+8. Get rvm
+9. Get the EOL code base
+10. Install the required version of Ruby
+11. Add some more important packages
+12. Create database.yml
+13. Get your EOL gems
+14. Build and configure virtuoso
+15. Setup the EOL databases
+16. Dump the box (if desired)
+17. Configure for tests (if desired)
+
+==== Install VirtualBox
+
+Go to https://www.virtualbox.org/wiki/Downloads and download the appropriate 
+version of VirtualBox for your operating system. Follow the installation 
+instructions, but don't worry about actually running the application.
+
+==== Install Vagrant
+
+Go to http://www.vagrantup.com/downloads.html and download the appropriate 
+version of Vagrant. Follow the installation instructions.
+
+==== Install Git
+
+Get a reasonably recent version of the command line version of Git. This may 
+already be installed on your machine or you may need to go somewhere like 
+http://github.com and follow their instructions to get it installed.
+
+==== Git the Vagrantfile box for EOL build environment
+
+  # Local Host
+  % git clone https://github.com/EOL/eol-build-vagrant.git
+
+is the easiest approach. However, you may want to setup SSH access to GitHub 
+as described here: help.github.com/articles/generating-ssh-keys and clone it
+using the SSH version.
+
+==== Run 'vagrant up'
+
+  # Local Host
+  % cd eol-build-vagrant
+  % vagrant up
+
+This should create a vanilla 62-bit Ubuntu Vagrant VM on your local host.
+Once it completes you should be able to access it with:
+
+  % vagrant ssh
+
+You may want to go into the VirtualBox application at this point and just 
+verify that the VM has 2G of memory.
+
+==== Update the box
+
+This will bring the operating system on the generic box up to date in terms 
+of security patches etc.
+
+  # Local Host
+  % vagrant ssh
+  % sudo -y apt-get update
+
+==== Install git on the box
+
+Now you have to install and reconfigure git on the VM:
+
+  # Vagrant
+  % sudo -y apt-get install git
+
+==== Get rvm
+
+  # Vagrant
+  % sudo -y apt-get install curl
+  % curl -L https://get.rvm.io | bash -s stable
+  % exit
+
+Note that you should exit any shells you have on the VM so that they can correctly pickup the rvm shell functions.
+
+==== Get the EOL code base
+
+  # Local Host
+  % vagrant ssh
+  % ROOT=~/git
+  % mkdir -p $ROOT; cd $ROOT
+  % git clone https://github.com/EOL/eol.git
+
+==== Install the required version of Ruby
+
+  # Vagrant
+  % RUBY_VERSION=`cat $ROOT/eol/.ruby-version`
+  % rvm install $RUBY_VERSION
+
+==== Add some more important packages
+
+  # Vagrant
+  % sudo -y apt-get install build-essential default-jre memcached flex gperf \
+    libqt4-dev libxslt-dev libxml2-dev redis-server mysql-server mysql-client \
+libmysqlclient-dev redis-server
+
+==== Create database.yml
+
+  % cp $ROOT/eol/config/database.sample.yml $ROOT/eol/config/database.yml
+
+Note that by default no password is set for EOL development databases. Feel
+free to set a password (we recommend using 'mysql_secure_installation') and be 
+sure to update the database.yml.
+
+==== Get your EOL gems
+
+  # Vagrant
+  % cd $ROOT/eol
+  % bundle install
+
+==== Build and configure virtuoso
+
+This outlines how to build version 7.1.0 of Virtuoso from the master branch of 
+the Virtuoso GitHub repository.
+
+We have found that Virtuoso can be very particular about the version 
+number that is compatible with the related Ruby gems. As of July 10, 2014
+Vagrant 7.1.0 works well (7.1.1, however, does not):
+
+  # Vagrant
+  % cd /tmp; CFLAGS="-O2 -m64"; export CFLAGS
+  % wget https://github.com/openlink/virtuoso-opensource/archive/v7.1.0.tar.gz
+  % tar xzf v7.1.0.tar.gz
+  % cd virtuoso-opensource-7.1.0
+  % ./autogen.sh --enable-maintainer-mode --prefix=/usr/local/ --with-readline --program-transform-name="s/isql/isql-vt/"
+  % ./configure --prefix=/usr/local/ --with-readline --program-transform-name="s/isql/isql-vt/"
+  % make; sudo make install
+  % git clone https://github.com/mbl-cli/virtuoso-cookbook.git /tmp/virtuoso-cookbook
+  % cd /tmp/virtuoso-cookbook
+  % sudo cp templates/default/init.erb /etc/init.d/virtuoso
+  % sudo chmod 0755 /etc/init.d/virtuoso 
+  % sudo service virtuoso start
+
+Note: Renaming the isql-vt executable is necessary to avoid a potential 
+conflict with isql from the PHP 5.3 package.
+
+Note: Need to figure out how to get this to kick off correctly when the box 
+restarts. The init.d/virtuoso file seems to have some issues.
+
+Finally adjust some of the permissions using the Virtuoso isql interface:
+
+  # Vagrant
+  % isql-vt 1111 dba dba
+
+This will start an interactive command-line session with Virtuoso.  In this 
+environment give the following commands:
+
+  GRANT EXECUTE ON SPARUL_CLEAR TO "SPARQL";
+  GRANT EXECUTE ON DB.DBA.SPARUL_DROP TO "SPARQL";
+  GRANT DELETE ON DB.DBA.RDF_QUAD TO "SPARQL";
+  GRANT EXECUTE ON DB.DBA.SPARQL_INSERT_DICT_CONTENT TO "SPARQL";
+  GRANT EXECUTE ON DB.DBA.SPARQL_DELETE_DICT_CONTENT TO "SPARQL";
+  quit;
+  
+==== Setup the EOL databases
+
+  # Vagrant
+  % rake db:create:all
+  % rake solr:start
+  % rake eol:db:recreate
+  % rake scenarios:load NAME=bootstrap
+  % rake eol:db:recreate RAILS_ENV=test
+  % rake scenarios:load NAME=bootstrap RAILS_ENV=test
+  % rake
+
+==== Dump the box (if desired)
+
+This is a good point to check point the box and is the point where we created
+the Vagrant box for EOL.
+
+  # Local
+  % vagrant --output eol-rails
+
+==== Configure for tests (if desired)
+
+If you want to use this box for development, then you need to have access to 
+the private mbl-cli GitHub community. We plan to at least make this step
+unnecessary to get the tests passing. For now, after you have access to this 
+community, you must then create an SSH key and register it on GitHub as 
+described here:
+
+https://help.github.com/articles/generating-ssh-keys
+
+The short story is run:
+
+  # Vagrant
+  % ssh-keygen -t rsa -C "Your Email Address"
+
+And then copy the resulting ~/.ssh/id_rsa.pub into your SSH keys on GitHub.
+Note that the ssh-add command mentioned in the GitHub docs is not necessary
+and won't work without install additional packages.
+
+Once the ssh key is setup run:
+
+  # Vagrant
+  % cd ~/git/eol
+  % rake eol:site_specific repo=git@github.com:mbl-cli/eol-private.git
+
+You should now be able to run the tests:
+
+  # Vagrant
+  % cd ~/git/eol
+  % rake
+
+In most cases this should complete with all tests passing. There are some
+subtle order dependencies that we have not fully worked out that can cause 
+failures. It is always worth running the tests a second time if there are
+failures to see if they just go away.
+
+== Personalizing Git
+
+If you plan on contributing changes to EOL you will need an account on GitHub 
+if you don't already have one.  You will then probably want to configure git 
+with these commands:
+
+  # Local Host
+  % git config --global user.name "Your Full Name"
+  % git config --global user.email "Your Email Address”
+
+  # Vagrant
+  % sudo apt-get install git
+  % git config --global user.name "Your Full Name"
+  % git config --global user.email "Your Email Address"
