@@ -103,19 +103,19 @@ of security patches etc.
 
   # Local Host
   % vagrant ssh
-  % sudo -y apt-get update
+  % sudo apt-get -y update
 
 ==== Install git on the box
 
 Now you have to install and reconfigure git on the VM:
 
   # Vagrant
-  % sudo -y apt-get install git
+  % sudo apt-get -y install git
 
 ==== Get rvm
 
   # Vagrant
-  % sudo -y apt-get install curl
+  % sudo apt-get -y install curl
   % curl -L https://get.rvm.io | bash -s stable
   % exit
 
@@ -138,9 +138,12 @@ Note that you should exit any shells you have on the VM so that they can correct
 ==== Add some more important packages
 
   # Vagrant
-  % sudo -y apt-get install build-essential default-jre memcached flex gperf \
+  % sudo apt-get -y install build-essential default-jre memcached flex gperf \
     libqt4-dev libxslt-dev libxml2-dev redis-server mysql-server mysql-client \
-libmysqlclient-dev redis-server
+    libmysqlclient-dev redis-server
+
+The installation of the MySQL packages will ask for a password multiple times.
+Do not provide a password.
 
 ==== Create database.yml
 
@@ -203,13 +206,13 @@ environment give the following commands:
 ==== Setup the EOL databases
 
   # Vagrant
+  % cd $ROOT/eol
   % rake db:create:all
   % rake solr:start
   % rake eol:db:recreate
   % rake scenarios:load NAME=bootstrap
   % rake eol:db:recreate RAILS_ENV=test
   % rake scenarios:load NAME=bootstrap RAILS_ENV=test
-  % rake
 
 ==== Dump the box (if desired)
 
@@ -217,7 +220,7 @@ This is a good point to check point the box and is the point where we created
 the Vagrant box for EOL.
 
   # Local
-  % vagrant --output eol-rails
+  % vagrant package --output eol-rails
 
 ==== Configure for tests (if desired)
 
@@ -234,15 +237,23 @@ The short story is run:
   # Vagrant
   % ssh-keygen -t rsa -C "Your Email Address"
 
-And then copy the resulting ~/.ssh/id_rsa.pub into your SSH keys on GitHub.
-Note that the ssh-add command mentioned in the GitHub docs is not necessary
-and won't work without install additional packages.
+Use the default filename and don't set a passphrase. Then copy the resulting 
+~/.ssh/id_rsa.pub into your SSH keys on GitHub. Note that the ssh-add command 
+mentioned in the GitHub docs is not necessary and won't work without install 
+additional packages.
 
 Once the ssh key is setup run:
 
   # Vagrant
   % cd ~/git/eol
   % rake eol:site_specific repo=git@github.com:mbl-cli/eol-private.git
+
+Currently you need to make sure Virtuoso and Solr are running with:
+
+  # Vagrant
+  % cd ~/git/eol
+  % rake solr:start
+  % sudo service virtuoso start
 
 You should now be able to run the tests:
 
