@@ -53,8 +53,11 @@ Things you need to do:
 13. Get your EOL gems
 14. Build and configure virtuoso
 15. Setup the EOL databases
-16. Dump the box (if desired)
-17. Configure for tests (if desired)
+16. Install PHP 5.3
+17. Tweak Your Local Environment
+18. Dump the box (if desired)
+19. Configure for tests (if desired)
+20. Personalizing Git
 
 ==== Install VirtualBox
 
@@ -140,7 +143,7 @@ Note that you should exit any shells you have on the VM so that they can correct
   # Vagrant
   % sudo apt-get -y install build-essential default-jre memcached flex gperf \
     libqt4-dev libxslt-dev libxml2-dev redis-server mysql-server mysql-client \
-    libmysqlclient-dev redis-server
+    libmysqlclient-dev redis-server vim emacs23 php5 imagemagick
 
 The installation of the MySQL packages will ask for a password multiple times.
 Do not provide a password.
@@ -169,18 +172,19 @@ number that is compatible with the related Ruby gems. As of July 10, 2014
 Vagrant 7.1.0 works well (7.1.1, however, does not):
 
   # Vagrant
-  % cd /tmp; CFLAGS="-O2 -m64"; export CFLAGS
-  % wget https://github.com/openlink/virtuoso-opensource/archive/v7.1.0.tar.gz
+  % cd /tmp; CFLAGS="-O2 -m64"; export CFLAGS; \
+  wget https://github.com/openlink/virtuoso-opensource/archive/v7.1.0.tar.gz
   % tar xzf v7.1.0.tar.gz
-  % cd virtuoso-opensource-7.1.0
-  % ./autogen.sh --enable-maintainer-mode --prefix=/usr/local/ --with-readline --program-transform-name="s/isql/isql-vt/"
-  % ./configure --prefix=/usr/local/ --with-readline --program-transform-name="s/isql/isql-vt/"
-  % make; sudo make install
-  % git clone https://github.com/mbl-cli/virtuoso-cookbook.git /tmp/virtuoso-cookbook
-  % cd /tmp/virtuoso-cookbook
-  % sudo cp templates/default/init.erb /etc/init.d/virtuoso
-  % sudo chmod 0755 /etc/init.d/virtuoso 
-  % sudo service virtuoso start
+  % cd virtuoso-opensource-7.1.0; ./autogen.sh --enable-maintainer-mode \
+  --prefix=/usr/local/ --with-readline --program-transform-name="s/isql/isql-vt/"
+  % ./configure --prefix=/usr/local/ --with-readline \
+  --program-transform-name="s/isql/isql-vt/"; make; sudo make install
+  % git clone https://github.com/mbl-cli/virtuoso-cookbook.git \
+  /tmp/virtuoso-cookbook; cd /tmp/virtuoso-cookbook
+  % sudo cp templates/default/init.erb /etc/init.d/virtuoso; \
+  sudo chmod 0755 /etc/init.d/virtuoso; \
+  sudo update-rc.d virtuoso defaults; \
+  sudo service virtuoso start
 
 Note: Renaming the isql-vt executable is necessary to avoid a potential 
 conflict with isql from the PHP 5.3 package.
@@ -213,6 +217,37 @@ environment give the following commands:
   % rake scenarios:load NAME=bootstrap
   % rake eol:db:recreate RAILS_ENV=test
   % rake scenarios:load NAME=bootstrap RAILS_ENV=test
+
+==== Install PHP 5.3
+
+  # Vagrant
+  % cd $ROOT; git clone https://github.com/EOL/eol_php_code.git
+  % sudo ln -s $ROOT/eol_php_code /var/www
+
+You should now be able to go to:
+
+  http://localhost:8080/eol_php_code/README.rdoc
+
+=== Tweak Your Local Environment
+
+  # Vagrant
+  % cd $ROOT/eol_php_code; \
+  chmod -R a+w log temp tmp applications/content_server/; \
+  cp eol/config/database.yml eol_php_code/config; \
+  cp eol_php_code/config/environments/local.rb.sample \
+  eol_php_code/config/environments/local.rb
+  % cp $ROOT/eol/config/environments/local.rb.sample \
+  $ROOT/eol/config/environments/local.rb
+  % bundle install
+  % sudo apt-get -y install  libapache2-mod-php5 libarc-php libfpdf-tpl-php \
+  libphp-phpmailer libzend-framework-php libzend-framework-zendx-php \
+  php-auth-sasl php-fpdf php-http php-http-request php-http-upload \
+  php-http-webdav-server php-image-text php-imlib php-log php-mail \
+  php-mail-mime php-mail-mimedecode php-mime-type php-net-dime php-net-ftp \
+  php-net-smtp php-net-socket php-net-url php-pear php-soap php-xml-htmlsax3 \
+  php-xml-parser php5-curl php5-dev php5-gd php5-imagick php5-memcache \
+  php5-memcached php5-mysqlnd php5-ps php5-uuid php5-xmlrpc php5-xsl phpsysinfo
+  % sudo apachectl graceful
 
 ==== Dump the box (if desired)
 
@@ -247,24 +282,31 @@ Once the ssh key is setup run:
   # Vagrant
   % cd ~/git/eol
   % rake eol:site_specific repo=git@github.com:mbl-cli/eol-private.git
+  % cp vendor/eol_org/php_config/environments/test.php ../eol_php_code/config/environments/test.php
+  % cp vendor/eol_org/php_config/environments/test.php ../eol_php_code/config/environments/development.php
 
-Currently you need to make sure Virtuoso and Solr are running with:
+Currently you need to make sure Solr is running with:
 
   # Vagrant
   % cd ~/git/eol
   % rake solr:start
-  % sudo service virtuoso start
 
-You should now be able to run the tests:
+You should now be able to run the Rails tests with:
 
   # Vagrant
   % cd ~/git/eol
   % rake
+  
+and the PHP tests with:
 
-In most cases this should complete with all tests passing. There are some
-subtle order dependencies that we have not fully worked out that can cause 
-failures. It is always worth running the tests a second time if there are
-failures to see if they just go away.
+  # Vagrant
+  % cd ~/git/eol_php_code
+  % php tests/run_tests.php
+
+In most cases all of the tests should pass. There are some subtle order 
+dependencies that we have not fully worked out that can cause failures. It is 
+always worth running the tests a second time if there are failures to see if 
+they just go away.
 
 == Personalizing Git
 
@@ -277,6 +319,5 @@ with these commands:
   % git config --global user.email "Your Email Address”
 
   # Vagrant
-  % sudo apt-get install git
   % git config --global user.name "Your Full Name"
   % git config --global user.email "Your Email Address"
