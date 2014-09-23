@@ -53,7 +53,7 @@ Things you need to do:
 13. Get your EOL gems
 14. Build and configure virtuoso
 15. Setup the EOL databases
-16. Install PHP 5.3
+16. Get EOL PHP Code
 17. Tweak Your Local Environment
 18. Dump the box (if desired)
 19. Configure for tests (if desired)
