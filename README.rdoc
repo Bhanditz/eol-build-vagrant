@@ -179,6 +179,10 @@ Vagrant 7.1.0 works well (7.1.1, however, does not):
   --prefix=/usr/local/ --with-readline --program-transform-name="s/isql/isql-vt/"
   % ./configure --prefix=/usr/local/ --with-readline \
   --program-transform-name="s/isql/isql-vt/"; make; sudo make install
+
+The above line may hang.  If this happens try typing <cntrl>-D to see if the
+build process resumes.
+
   % git clone https://github.com/mbl-cli/virtuoso-cookbook.git \
   /tmp/virtuoso-cookbook; cd /tmp/virtuoso-cookbook
   % sudo cp templates/default/init.erb /etc/init.d/virtuoso; \
@@ -213,12 +217,9 @@ environment give the following commands:
   % cd $ROOT/eol
   % rake db:create:all
   % rake solr:start
-  % rake eol:db:recreate
-  % rake scenarios:load NAME=bootstrap
-  % rake eol:db:recreate RAILS_ENV=test
-  % rake scenarios:load NAME=bootstrap RAILS_ENV=test
+  % rake eol:reset
 
-==== Install PHP 5.3
+==== Get EOL PHP Code
 
   # Vagrant
   % cd $ROOT; git clone https://github.com/EOL/eol_php_code.git
@@ -233,9 +234,8 @@ You should now be able to go to:
   # Vagrant
   % cd $ROOT/eol_php_code; \
   chmod -R a+w log temp tmp applications/content_server/; \
-  cp eol/config/database.yml eol_php_code/config; \
-  cp eol_php_code/config/environments/local.rb.sample \
-  eol_php_code/config/environments/local.rb
+  cp $ROOT/eol/config/database.yml config; \
+  cp config/environments/local.rb.sample config/environments/local.rb
   % cp $ROOT/eol/config/environments/local.rb.sample \
   $ROOT/eol/config/environments/local.rb
   % bundle install
@@ -255,37 +255,11 @@ This is a good point to check point the box and is the point where we created
 the Vagrant box for EOL.
 
   # Local
-  % vagrant package --output eol-rails
+  % vagrant package --output eol-dev
 
 ==== Configure for tests (if desired)
 
-If you want to use this box for development, then you need to have access to 
-the private mbl-cli GitHub community. We plan to at least make this step
-unnecessary to get the tests passing. For now, after you have access to this 
-community, you must then create an SSH key and register it on GitHub as 
-described here:
-
-https://help.github.com/articles/generating-ssh-keys
-
-The short story is run:
-
-  # Vagrant
-  % ssh-keygen -t rsa -C "Your Email Address"
-
-Use the default filename and don't set a passphrase. Then copy the resulting 
-~/.ssh/id_rsa.pub into your SSH keys on GitHub. Note that the ssh-add command 
-mentioned in the GitHub docs is not necessary and won't work without install 
-additional packages.
-
-Once the ssh key is setup run:
-
-  # Vagrant
-  % cd ~/git/eol
-  % rake eol:site_specific repo=git@github.com:mbl-cli/eol-private.git
-  % cp vendor/eol_org/php_config/environments/test.php ../eol_php_code/config/environments/test.php
-  % cp vendor/eol_org/php_config/environments/test.php ../eol_php_code/config/environments/development.php
-
-Currently you need to make sure Solr is running with:
+Currently you may need to make sure Solr is running with:
 
   # Vagrant
   % cd ~/git/eol
@@ -312,11 +286,19 @@ they just go away.
 
 If you plan on contributing changes to EOL you will need an account on GitHub 
 if you don't already have one.  You will then probably want to configure git 
-with these commands:
+to make it more convenient:
 
-  # Local Host
-  % git config --global user.name "Your Full Name"
-  % git config --global user.email "Your Email Address”
+First you should set up a SSH key with:
+
+  # Vagrant
+  % ssh-keygen -t rsa -C "Your Email Address"
+
+Use the default filename and don't set a passphrase. Then copy the resulting 
+~/.ssh/id_rsa.pub into your SSH keys on GitHub. Note that the ssh-add command 
+mentioned in the GitHub docs is not necessary and won't work without install 
+additional packages.
+
+Then you'll want to run the following:
 
   # Vagrant
   % git config --global user.name "Your Full Name"
