@@ -255,7 +255,12 @@ This is a good point to check point the box and is the point where we created
 the Vagrant box for EOL.
 
   # Local
-  % vagrant package --output eol-dev
+  % vagrant package --output eol-dev-<YY>-<MM>-<DD>
+
+e.g., eol-dev-14-09-30. After creating and testing a new box, it will need to
+be transferred to opendata.eol.org for others to see it. If you do this,
+then you should also update the EOL/eol-vagrant repository to reflect the
+new box name.
 
 ==== Configure for tests (if desired)
 
